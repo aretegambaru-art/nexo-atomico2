@@ -39,7 +39,6 @@ jobs:
         run: |
           # Verificar si existe package.json
           if [ ! -f "package.json" ]; then
-            echo "❌ No se encontró package.json"
             echo "Creando package.json básico..."
             cat > package.json << 'EOF'
           {
@@ -53,7 +52,8 @@ jobs:
               "@capacitor/android": "^5.0.0"
             },
             "devDependencies": {
-              "typescript": "^5.0.0"
+              "typescript": "^5.0.0",
+              "@capacitor/cli": "^5.0.0"
             }
           }
           EOF
@@ -61,7 +61,7 @@ jobs:
           
           # Generar package-lock.json si no existe
           if [ ! -f "package-lock.json" ] && [ ! -f "npm-shrinkwrap.json" ] && [ ! -f "yarn.lock" ]; then
-            echo "⚠️ No se encontró archivo de lock. Generando package-lock.json..."
+            echo "Generando package-lock.json..."
             npm install --package-lock-only
           fi
           
@@ -76,13 +76,13 @@ jobs:
           
           # Instalar Capacitor si no está
           if ! npm list @capacitor/core @capacitor/cli @capacitor/android > /dev/null 2>&1; then
-            echo "📦 Instalando Capacitor..."
+            echo "Instalando Capacitor..."
             npm install -D @capacitor/core @capacitor/cli @capacitor/android
           fi
           
           # Instalar TypeScript
           if ! npm list typescript > /dev/null 2>&1; then
-            echo "📦 Instalando TypeScript..."
+            echo "Instalando TypeScript..."
             npm install -D typescript
           fi
 
@@ -94,27 +94,33 @@ jobs:
             elif npm run | grep -q " build:prod$"; then
               npm run build:prod
             else
-              echo "⚠️ No se encontró script de build. Creando dist/ vacío..."
+              echo "No se encontró script de build. Creando dist/ vacío..."
               mkdir -p dist
               echo "<html><body><h1>Alarm App</h1></body></html>" > dist/index.html
             fi
           else
-            echo "⚠️ No se encontró package.json. Creando dist/ vacío..."
+            echo "No se encontró package.json. Creando dist/ vacío..."
             mkdir -p dist
             echo "<html><body><h1>Alarm App</h1></body></html>" > dist/index.html
           fi
           
           if [ ! -d "dist" ]; then
-            echo "❌ No se encontró carpeta dist. Creando..."
+            echo "Creando carpeta dist..."
             mkdir -p dist
             echo "<html><body><h1>Alarm App</h1></body></html>" > dist/index.html
           fi
 
+      - name: Remove capacitor.config.ts if exists
+        run: |
+          if [ -f "capacitor.config.ts" ]; then
+            echo "Eliminando capacitor.config.ts para evitar conflictos..."
+            rm -f capacitor.config.ts
+          fi
+
       - name: Create capacitor.config.json
         run: |
-          if [ ! -f "capacitor.config.json" ]; then
-            echo "⚠️ Creando capacitor.config.json..."
-            cat > capacitor.config.json << 'EOF'
+          echo "Creando capacitor.config.json..."
+          cat > capacitor.config.json << 'EOF'
           {
             "appId": "com.example.app",
             "appName": "Alarm App",
@@ -128,26 +134,32 @@ jobs:
             }
           }
           EOF
-          fi
+          
+          echo "Contenido de capacitor.config.json:"
+          cat capacitor.config.json
 
       - name: Sync Capacitor Android
         run: |
-          if ! npx cap --version > /dev/null 2>&1; then
-            echo "📦 Instalando Capacitor globalmente..."
-            npm install -g @capacitor/cli
+          # Verificar que capacitor.config.json existe
+          if [ ! -f "capacitor.config.json" ]; then
+            echo "ERROR: capacitor.config.json no existe"
+            exit 1
           fi
           
+          # Inicializar Capacitor si es necesario
           if [ ! -d "android" ]; then
-            echo "📱 Inicializando Capacitor para Android..."
+            echo "Inicializando Capacitor para Android..."
             npx cap init Alarm App com.example.app --web-dir=dist
           fi
           
+          # Agregar Android si no existe
           if [ ! -d "android" ]; then
-            echo "📱 Agregando plataforma Android..."
+            echo "Agregando plataforma Android..."
             npx cap add android
           fi
           
-          echo "🔄 Sincronizando Capacitor..."
+          # Sincronizar
+          echo "Sincronizando Capacitor..."
           npx cap sync android --no-build
 
       - name: Create Java directories
@@ -206,7 +218,8 @@ jobs:
                       </intent-filter>
                   </receiver>
           
-                  <service android:name=".AlarmService" 
+                  <service 
+                      android:name=".AlarmService" 
                       android:exported="false" 
                       android:foregroundServiceType="alarm" />
           
@@ -354,7 +367,7 @@ jobs:
                   );
                   
                   Notification notification = new NotificationCompat.Builder(context, "alarm_channel")
-                      .setContentTitle("⏰ Alarma")
+                      .setContentTitle("Alarma")
                       .setContentText("¡Es hora de tu alarma!")
                       .setSmallIcon(android.R.drawable.ic_lock_alarm)
                       .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -462,9 +475,4 @@ jobs:
               public int onStartCommand(Intent intent, int flags, int startId) {
                   Log.d(TAG, "AlarmService iniciado");
                   
-                  Notification notification = new NotificationCompat.Builder(this, "alarm_channel")
-                      .setContentTitle("🔔 Alarma activa")
-                      .setContentText("La alarma está sonando")
-                      .setSmallIcon(android.R.drawable.ic_lock_alarm)
-                      .setPriority(NotificationCompat.PRIORITY_HIGH)
- 
+          
