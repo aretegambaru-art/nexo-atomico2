@@ -14,10 +14,10 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install dependencies
+      - name: Install dependencies & TypeScript
         run: |
           npm install
-          npm install -D typescript
+          npm install -g typescript
 
       - name: Sync Capacitor Android
         run: npx cap sync android
