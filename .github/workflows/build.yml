@@ -16,30 +16,25 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      # 1. Checkout del código
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2. Configurar Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      # 3. Configurar Java
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: ${{ env.JAVA_VERSION }}
 
-      # 4. Configurar Android SDK
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # 5. Instalar dependencias (CORREGIDO)
       - name: Install dependencies
         run: |
           # Verificar si existe package.json
@@ -47,21 +42,21 @@ jobs:
             echo "❌ No se encontró package.json"
             echo "Creando package.json básico..."
             cat > package.json << 'EOF'
-            {
-              "name": "alarm-app",
-              "version": "1.0.0",
-              "scripts": {
-                "build": "echo 'Build web app'"
-              },
-              "dependencies": {
-                "@capacitor/core": "^5.0.0",
-                "@capacitor/android": "^5.0.0"
-              },
-              "devDependencies": {
-                "typescript": "^5.0.0"
-              }
+          {
+            "name": "alarm-app",
+            "version": "1.0.0",
+            "scripts": {
+              "build": "echo 'Build web app'"
+            },
+            "dependencies": {
+              "@capacitor/core": "^5.0.0",
+              "@capacitor/android": "^5.0.0"
+            },
+            "devDependencies": {
+              "typescript": "^5.0.0"
             }
-            EOF
+          }
+          EOF
           fi
           
           # Generar package-lock.json si no existe
@@ -79,7 +74,7 @@ jobs:
             npm install --no-audit --no-fund
           fi
           
-          # Instalar dependencias de Capacitor si no están
+          # Instalar Capacitor si no está
           if ! npm list @capacitor/core @capacitor/cli @capacitor/android > /dev/null 2>&1; then
             echo "📦 Instalando Capacitor..."
             npm install -D @capacitor/core @capacitor/cli @capacitor/android
@@ -91,12 +86,9 @@ jobs:
             npm install -D typescript
           fi
 
-      # 6. Construir web app (CORREGIDO)
       - name: Build web app
         run: |
-          # Verificar si existe carpeta de construcción
           if [ -f "package.json" ]; then
-            # Intentar diferentes scripts de build
             if npm run | grep -q " build$"; then
               npm run build
             elif npm run | grep -q " build:prod$"; then
@@ -112,63 +104,52 @@ jobs:
             echo "<html><body><h1>Alarm App</h1></body></html>" > dist/index.html
           fi
           
-          # Verificar que existe la carpeta dist
           if [ ! -d "dist" ]; then
             echo "❌ No se encontró carpeta dist. Creando..."
             mkdir -p dist
             echo "<html><body><h1>Alarm App</h1></body></html>" > dist/index.html
           fi
 
-      # 7. Crear capacitor.config.json si no existe
       - name: Create capacitor.config.json
         run: |
           if [ ! -f "capacitor.config.json" ]; then
             echo "⚠️ Creando capacitor.config.json..."
             cat > capacitor.config.json << 'EOF'
-            {
-              "appId": "com.example.app",
-              "appName": "Alarm App",
-              "webDir": "dist",
-              "bundledWebRuntime": false,
-              "android": {
-                "allowMixedContent": true,
-                "captureInput": true,
-                "scheme": "https",
-                "hostname": "localhost"
-              }
+          {
+            "appId": "com.example.app",
+            "appName": "Alarm App",
+            "webDir": "dist",
+            "bundledWebRuntime": false,
+            "android": {
+              "allowMixedContent": true,
+              "captureInput": true,
+              "scheme": "https",
+              "hostname": "localhost"
             }
-            EOF
+          }
+          EOF
           fi
 
-      # 8. Sincronizar Capacitor (CORREGIDO)
       - name: Sync Capacitor Android
         run: |
-          # Verificar si Capacitor está instalado
           if ! npx cap --version > /dev/null 2>&1; then
             echo "📦 Instalando Capacitor globalmente..."
             npm install -g @capacitor/cli
           fi
           
-          # Inicializar Capacitor si es necesario
           if [ ! -d "android" ]; then
             echo "📱 Inicializando Capacitor para Android..."
             npx cap init Alarm App com.example.app --web-dir=dist
           fi
           
-          # Agregar Android si no existe
           if [ ! -d "android" ]; then
             echo "📱 Agregando plataforma Android..."
             npx cap add android
           fi
           
-          # Sincronizar
           echo "🔄 Sincronizando Capacitor..."
           npx cap sync android --no-build
 
-      # 9-27. [EL RESTO DEL CÓDIGO PERMANECE IGUAL]
-      # (Mantén todos los pasos de creación de archivos Java desde el paso 8 al 23)
-
-      # 8. Crear estructura de directorios para código Java
       - name: Create Java directories
         run: |
           mkdir -p android/app/src/main/java/com/example/app/
@@ -176,7 +157,6 @@ jobs:
           mkdir -p android/app/src/main/res/raw/
           mkdir -p android/app/src/main/res/xml/
 
-      # 9. Configurar AndroidManifest.xml completo
       - name: Configure AndroidManifest.xml
         run: |
           cat > android/app/src/main/AndroidManifest.xml << 'EOF'
@@ -184,7 +164,6 @@ jobs:
           <manifest xmlns:android="http://schemas.android.com/apk/res/android"
               package="com.example.app">
           
-              <!-- Permisos para alarmas -->
               <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
               <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
               <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -195,8 +174,6 @@ jobs:
               <uses-permission android:name="android.permission.INTERNET" />
               <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
               <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-              <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-              <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
           
               <application
                   android:allowBackup="true"
@@ -220,37 +197,25 @@ jobs:
                       </intent-filter>
                   </activity>
           
-                  <receiver 
-                      android:name=".AlarmReceiver" 
-                      android:exported="true" />
+                  <receiver android:name=".AlarmReceiver" android:exported="true" />
                   
-                  <receiver 
-                      android:name=".BootReceiver" 
-                      android:exported="true">
+                  <receiver android:name=".BootReceiver" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.BOOT_COMPLETED" />
                           <action android:name="android.intent.action.QUICKBOOT_POWERON" />
-                          <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
                       </intent-filter>
                   </receiver>
           
-                  <service 
-                      android:name=".AlarmService" 
+                  <service android:name=".AlarmService" 
                       android:exported="false" 
                       android:foregroundServiceType="alarm" />
-          
-                  <service 
-                      android:name=".MediaPlayerService" 
-                      android:exported="false" 
-                      android:foregroundServiceType="mediaPlayback" />
           
               </application>
           
           </manifest>
           EOF
 
-      # 10. Crear MainActivity.java
-      - name: Create MainActivity
+      - name: Create MainActivity.java
         run: |
           cat > android/app/src/main/java/com/example/app/MainActivity.java << 'EOF'
           package com.example.app;
@@ -265,11 +230,9 @@ jobs:
           import android.os.Bundle;
           import android.provider.Settings;
           import android.util.Log;
-          
           import androidx.annotation.NonNull;
           import androidx.core.app.ActivityCompat;
           import androidx.core.content.ContextCompat;
-          
           import com.getcapacitor.BridgeActivity;
           
           public class MainActivity extends BridgeActivity {
@@ -279,7 +242,6 @@ jobs:
               @Override
               public void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-                  
                   createNotificationChannel();
                   checkAndRequestPermissions();
                   AlarmHelper.restoreAlarms(this);
@@ -288,7 +250,6 @@ jobs:
               private void createNotificationChannel() {
                   if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                       NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-                      
                       NotificationChannel alarmChannel = new NotificationChannel(
                           "alarm_channel",
                           "Alarm Channel",
@@ -298,15 +259,6 @@ jobs:
                       alarmChannel.enableVibration(true);
                       alarmChannel.setVibrationPattern(new long[]{0, 1000, 500, 1000});
                       manager.createNotificationChannel(alarmChannel);
-                      
-                      NotificationChannel musicChannel = new NotificationChannel(
-                          "music_channel",
-                          "Music Channel",
-                          NotificationManager.IMPORTANCE_LOW
-                      );
-                      musicChannel.setDescription("Canal para reproducción de música");
-                      manager.createNotificationChannel(musicChannel);
-                      
                       Log.d(TAG, "Canales de notificación creados");
                   }
               }
@@ -339,8 +291,7 @@ jobs:
           }
           EOF
 
-      # 11. Crear AlarmReceiver.java
-      - name: Create AlarmReceiver
+      - name: Create AlarmReceiver.java
         run: |
           cat > android/app/src/main/java/com/example/app/AlarmReceiver.java << 'EOF'
           package com.example.app;
@@ -359,7 +310,6 @@ jobs:
           import android.os.VibrationEffect;
           import android.os.Vibrator;
           import android.util.Log;
-          
           import androidx.core.app.NotificationCompat;
           
           public class AlarmReceiver extends BroadcastReceiver {
@@ -448,8 +398,7 @@ jobs:
           }
           EOF
 
-      # 12. Crear BootReceiver.java
-      - name: Create BootReceiver
+      - name: Create BootReceiver.java
         run: |
           cat > android/app/src/main/java/com/example/app/BootReceiver.java << 'EOF'
           package com.example.app;
@@ -468,4 +417,54 @@ jobs:
               @Override
               public void onReceive(Context context, Intent intent) {
                   if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction()) ||
-                      Inten
+                      Intent.ACTION_QUICKBOOT_POWERON.equals(intent.getAction())) {
+                      Log.d(TAG, "Dispositivo reiniciado - restaurando alarmas");
+                      
+                      SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+                      long alarmTime = prefs.getLong(KEY_ALARM_TIME, 0);
+                      
+                      if (alarmTime > 0 && alarmTime > System.currentTimeMillis()) {
+                          AlarmHelper.setAlarm(context, alarmTime);
+                          Log.d(TAG, "Alarma restaurada para: " + alarmTime);
+                      }
+                  }
+              }
+          }
+          EOF
+
+      - name: Create AlarmService.java
+        run: |
+          cat > android/app/src/main/java/com/example/app/AlarmService.java << 'EOF'
+          package com.example.app;
+          
+          import android.app.Notification;
+          import android.app.NotificationManager;
+          import android.app.PendingIntent;
+          import android.app.Service;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.os.Build;
+          import android.os.IBinder;
+          import android.util.Log;
+          import androidx.core.app.NotificationCompat;
+          
+          public class AlarmService extends Service {
+              private static final String TAG = "AlarmService";
+              private static final int NOTIFICATION_ID = 1002;
+              
+              @Override
+              public void onCreate() {
+                  super.onCreate();
+                  Log.d(TAG, "AlarmService creado");
+              }
+              
+              @Override
+              public int onStartCommand(Intent intent, int flags, int startId) {
+                  Log.d(TAG, "AlarmService iniciado");
+                  
+                  Notification notification = new NotificationCompat.Builder(this, "alarm_channel")
+                      .setContentTitle("🔔 Alarma activa")
+                      .setContentText("La alarma está sonando")
+                      .setSmallIcon(android.R.drawable.ic_lock_alarm)
+                      .setPriority(NotificationCompat.PRIORITY_HIGH)
+ 
