@@ -1,0 +1,8 @@
+<!-- Agrega dentro de <manifest> -->
+<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+<!-- Agrega dentro de <application> -->
+<receiver
+    android:name=".AlarmReceiver"
+    android:exported="false" />
